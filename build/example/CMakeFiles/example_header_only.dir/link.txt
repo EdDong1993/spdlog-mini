@@ -1,1 +1,0 @@
-/usr/bin/c++  -O3 -DNDEBUG   CMakeFiles/example_header_only.dir/example.cpp.o  -o example_header_only  -lpthread 

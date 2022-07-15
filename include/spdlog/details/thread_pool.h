@@ -39,26 +39,8 @@ struct async_msg : log_msg_buffer
 
     // should only be moved in or out of the queue..
     async_msg(const async_msg &) = delete;
-
-// support for vs2013 move
-#if defined(_MSC_VER) && _MSC_VER <= 1800
-    async_msg(async_msg &&other)
-        : log_msg_buffer(std::move(other))
-        , msg_type(other.msg_type)
-        , worker_ptr(std::move(other.worker_ptr))
-    {}
-
-    async_msg &operator=(async_msg &&other)
-    {
-        *static_cast<log_msg_buffer *>(this) = std::move(other);
-        msg_type = other.msg_type;
-        worker_ptr = std::move(other.worker_ptr);
-        return *this;
-    }
-#else // (_MSC_VER) && _MSC_VER <= 1800
     async_msg(async_msg &&) = default;
     async_msg &operator=(async_msg &&) = default;
-#endif
 
     // construct from log_msg with given type
     async_msg(async_logger_ptr &&worker, async_msg_type the_type, const details::log_msg &m)
@@ -78,7 +60,7 @@ struct async_msg : log_msg_buffer
     {}
 };
 
-class SPDLOG_API thread_pool
+class thread_pool
 {
 public:
     using item_type = async_msg;
@@ -117,6 +99,4 @@ private:
 } // namespace details
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "thread_pool-inl.h"
-#endif
+#include "thread_pool-inl.h"

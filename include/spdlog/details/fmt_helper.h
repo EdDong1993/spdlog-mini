@@ -18,7 +18,7 @@ namespace spdlog {
 namespace details {
 namespace fmt_helper {
 
-inline spdlog::string_view_t to_string_view(const memory_buf_t &buf) SPDLOG_NOEXCEPT
+inline spdlog::string_view_t to_string_view(const memory_buf_t &buf) noexcept
 {
     return spdlog::string_view_t{buf.data(), buf.size()};
 }
@@ -34,7 +34,7 @@ template<typename T>
 inline void append_int(T n, memory_buf_t &dest)
 {
     // Buffer should be large enough to hold all digits (digits10 + 1) and a sign
-    SPDLOG_CONSTEXPR const auto BUF_SIZE = std::numeric_limits<T>::digits10 + 2;
+    constexpr const auto BUF_SIZE = std::numeric_limits<T>::digits10 + 2;
     char buf[BUF_SIZE];
 
     auto [ptr, ec] = std::to_chars(buf, buf + BUF_SIZE, n, 10);

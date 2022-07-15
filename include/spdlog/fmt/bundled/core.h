@@ -250,21 +250,12 @@
 #  define FMT_END_DETAIL_NAMESPACE }
 #endif
 
-#if !defined(FMT_HEADER_ONLY) && defined(_WIN32)
-#  define FMT_CLASS_API FMT_MSC_WARNING(suppress : 4275)
-#  ifdef FMT_EXPORT
-#    define FMT_API __declspec(dllexport)
-#  elif defined(FMT_SHARED)
-#    define FMT_API __declspec(dllimport)
-#  endif
-#else
 #  define FMT_CLASS_API
 #  if defined(FMT_EXPORT) || defined(FMT_SHARED)
 #    if defined(__GNUC__) || defined(__clang__)
 #      define FMT_API __attribute__((visibility("default")))
 #    endif
 #  endif
-#endif
 #ifndef FMT_API
 #  define FMT_API
 #endif
@@ -2955,9 +2946,7 @@ void vformat_to(
     locale_ref loc = {});
 
 FMT_API void vprint_mojibake(std::FILE*, string_view, format_args);
-#ifndef _WIN32
 inline void vprint_mojibake(std::FILE*, string_view, format_args) {}
-#endif
 FMT_END_DETAIL_NAMESPACE
 
 // A formatter specialization for the core types corresponding to detail::type
@@ -3230,7 +3219,5 @@ FMT_MODULE_EXPORT_END
 FMT_GCC_PRAGMA("GCC pop_options")
 FMT_END_NAMESPACE
 
-#ifdef FMT_HEADER_ONLY
-#  include "format.h"
-#endif
+#include "format.h"
 #endif  // FMT_CORE_H_

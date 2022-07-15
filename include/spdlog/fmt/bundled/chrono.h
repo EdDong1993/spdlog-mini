@@ -26,12 +26,7 @@ FMT_BEGIN_NAMESPACE
 #  if FMT_HAS_INCLUDE("winapifamily.h")
 #    include <winapifamily.h>
 #  endif
-#  if defined(_WIN32) && (!defined(WINAPI_FAMILY) || \
-                          (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP))
-#    define FMT_USE_TZSET 1
-#  else
 #    define FMT_USE_TZSET 0
-#  endif
 #endif
 
 // Enable safe chrono durations, unless explicitly disabled.
@@ -1090,22 +1085,8 @@ template <typename OutputIt, typename Char> class tm_writer {
   }
   template <typename T, FMT_ENABLE_IF(!has_member_data_tm_gmtoff<T>::value)>
   void format_utc_offset_impl(const T& tm) {
-#if defined(_WIN32) && defined(_UCRT)
-#  if FMT_USE_TZSET
-    tzset_once();
-#  endif
-    long offset = 0;
-    _get_timezone(&offset);
-    if (tm.tm_isdst) {
-      long dstbias = 0;
-      _get_dstbias(&dstbias);
-      offset += dstbias;
-    }
-    write_utc_offset(-offset);
-#else
     ignore_unused(tm);
     format_localized('z');
-#endif
   }
 
   template <typename T, FMT_ENABLE_IF(has_member_data_tm_zone<T>::value)>

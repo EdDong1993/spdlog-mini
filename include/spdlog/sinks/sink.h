@@ -9,7 +9,7 @@
 namespace spdlog {
 
 namespace sinks {
-class SPDLOG_API sink
+class sink
 {
 public:
     virtual ~sink() = default;
@@ -30,6 +30,4 @@ protected:
 } // namespace sinks
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "sink-inl.h"
-#endif
+#include "sink-inl.h"

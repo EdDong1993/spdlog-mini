@@ -8,7 +8,7 @@
 
 namespace spdlog {
 namespace details {
-struct SPDLOG_API log_msg
+struct log_msg
 {
     log_msg() = default;
     log_msg(log_clock::time_point log_time, source_loc loc, string_view_t logger_name, level::level_enum lvl, string_view_t msg);
@@ -32,6 +32,4 @@ struct SPDLOG_API log_msg
 } // namespace details
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "log_msg-inl.h"
-#endif
+#include "log_msg-inl.h"

@@ -22,10 +22,6 @@
 #  include <locale>
 #endif
 
-#ifdef _WIN32
-#  include <io.h>  // _isatty
-#endif
-
 #include "format.h"
 
 FMT_BEGIN_NAMESPACE
@@ -2589,30 +2585,8 @@ FMT_FUNC std::string vformat(string_view fmt, format_args args) {
   return to_string(buffer);
 }
 
-#ifdef _WIN32
-namespace detail {
-using dword = conditional_t<sizeof(long) == 4, unsigned long, unsigned>;
-extern "C" __declspec(dllimport) int __stdcall WriteConsoleW(  //
-    void*, const void*, dword, dword*, void*);
-}  // namespace detail
-#endif
-
 namespace detail {
 FMT_FUNC void print(std::FILE* f, string_view text) {
-#ifdef _WIN32
-  auto fd = _fileno(f);
-  if (_isatty(fd)) {
-    detail::utf8_to_utf16 u16(string_view(text.data(), text.size()));
-    auto written = detail::dword();
-    if (detail::WriteConsoleW(reinterpret_cast<void*>(_get_osfhandle(fd)),
-                              u16.c_str(), static_cast<uint32_t>(u16.size()),
-                              &written, nullptr)) {
-      return;
-    }
-    // Fallback to fwrite on failure. It can happen if the output has been
-    // redirected to NUL.
-  }
-#endif
   detail::fwrite_fully(text.data(), 1, text.size(), f);
 }
 }  // namespace detail
@@ -2622,17 +2596,6 @@ FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
   detail::vformat_to(buffer, format_str, args);
   detail::print(f, {buffer.data(), buffer.size()});
 }
-
-#ifdef _WIN32
-// Print assuming legacy (non-Unicode) encoding.
-FMT_FUNC void detail::vprint_mojibake(std::FILE* f, string_view format_str,
-                                      format_args args) {
-  memory_buffer buffer;
-  detail::vformat_to(buffer, format_str,
-                     basic_format_args<buffer_context<char>>(args));
-  fwrite_fully(buffer.data(), 1, buffer.size(), f);
-}
-#endif
 
 FMT_FUNC void vprint(string_view format_str, format_args args) {
   vprint(stdout, format_str, args);

@@ -17,7 +17,7 @@
 namespace spdlog {
 namespace details {
 
-class SPDLOG_API periodic_worker
+class periodic_worker
 {
 public:
     periodic_worker(const std::function<void()> &callback_fun, std::chrono::seconds interval);
@@ -35,6 +35,4 @@ private:
 } // namespace details
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "periodic_worker-inl.h"
-#endif
+#include "periodic_worker-inl.h"

@@ -16,7 +16,7 @@
 namespace spdlog {
 namespace sinks {
 template<typename Mutex>
-class SPDLOG_API base_sink : public sink
+class base_sink : public sink
 {
 public:
     base_sink();
@@ -47,6 +47,4 @@ protected:
 } // namespace sinks
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "base_sink-inl.h"
-#endif
+#include "base_sink-inl.h"

@@ -243,11 +243,7 @@ inline auto ctzll(uint64_t x) -> int {
 FMT_END_NAMESPACE
 #endif
 
-#ifdef FMT_HEADER_ONLY
-#  define FMT_HEADER_ONLY_CONSTEXPR20 FMT_CONSTEXPR20
-#else
-#  define FMT_HEADER_ONLY_CONSTEXPR20
-#endif
+#define FMT_HEADER_ONLY_CONSTEXPR20 FMT_CONSTEXPR20
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
@@ -296,9 +292,7 @@ FMT_CONSTEXPR20 auto bit_cast(const From& from) -> To {
 }
 
 inline auto is_big_endian() -> bool {
-#ifdef _WIN32
-  return false;
-#elif defined(__BIG_ENDIAN__)
+#if defined(__BIG_ENDIAN__)
   return true;
 #elif defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
   return __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__;
@@ -2988,29 +2982,6 @@ void vformat_to(
   detail::parse_format_string<false>(fmt, format_handler(out, fmt, args, loc));
 }
 
-#ifndef FMT_HEADER_ONLY
-extern template FMT_API auto thousands_sep_impl<char>(locale_ref)
-    -> thousands_sep_result<char>;
-extern template FMT_API auto thousands_sep_impl<wchar_t>(locale_ref)
-    -> thousands_sep_result<wchar_t>;
-extern template FMT_API auto decimal_point_impl(locale_ref) -> char;
-extern template FMT_API auto decimal_point_impl(locale_ref) -> wchar_t;
-extern template auto format_float<double>(double value, int precision,
-                                          float_specs specs, buffer<char>& buf)
-    -> int;
-extern template auto format_float<long double>(long double value, int precision,
-                                               float_specs specs,
-                                               buffer<char>& buf) -> int;
-void snprintf_float(float, int, float_specs, buffer<char>&) = delete;
-extern template auto snprintf_float<double>(double value, int precision,
-                                            float_specs specs,
-                                            buffer<char>& buf) -> int;
-extern template auto snprintf_float<long double>(long double value,
-                                                 int precision,
-                                                 float_specs specs,
-                                                 buffer<char>& buf) -> int;
-#endif  // FMT_HEADER_ONLY
-
 FMT_END_DETAIL_NAMESPACE
 
 #if FMT_USE_USER_DEFINED_LITERALS
@@ -3090,15 +3061,7 @@ FMT_INLINE auto format_to(OutputIt out, const Locale& loc,
 FMT_MODULE_EXPORT_END
 FMT_END_NAMESPACE
 
-#ifdef FMT_DEPRECATED_INCLUDE_XCHAR
-#  include "xchar.h"
-#endif
-
-#ifdef FMT_HEADER_ONLY
-#  define FMT_FUNC inline
-#  include "format-inl.h"
-#else
-#  define FMT_FUNC
-#endif
+#define FMT_FUNC inline
+#include "format-inl.h"
 
 #endif  // FMT_FORMAT_H_

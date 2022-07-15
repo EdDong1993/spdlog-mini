@@ -15,35 +15,12 @@
 #include <cstdlib>       // strtod_l
 #include <system_error>  // std::system_error
 
-#if defined __APPLE__ || defined(__FreeBSD__)
-#  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
-#endif
-
 #include "format.h"
 
-#ifndef FMT_USE_FCNTL
-// UWP doesn't provide _pipe.
-#  if FMT_HAS_INCLUDE("winapifamily.h")
-#    include <winapifamily.h>
-#  endif
-#  if (FMT_HAS_INCLUDE(<fcntl.h>) || defined(__APPLE__) || \
-       defined(__linux__)) &&                              \
-      (!defined(WINAPI_FAMILY) ||                          \
-       (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP))
-#    include <fcntl.h>  // for O_RDONLY
-#    define FMT_USE_FCNTL 1
-#  else
-#    define FMT_USE_FCNTL 0
-#  endif
-#endif
+#include <fcntl.h> // for O_RDONLY
 
 #ifndef FMT_POSIX
-#  if defined(_WIN32) && !defined(__MINGW32__)
-// Fix warnings about deprecated symbols.
-#    define FMT_POSIX(call) _##call
-#  else
 #    define FMT_POSIX(call) call
-#  endif
 #endif
 
 // Calls to system functions are wrapped in FMT_SYSTEM for testability.
@@ -51,24 +28,15 @@
 #  define FMT_POSIX_CALL(call) FMT_SYSTEM(call)
 #else
 #  define FMT_SYSTEM(call) ::call
-#  ifdef _WIN32
-// Fix warnings about deprecated symbols.
-#    define FMT_POSIX_CALL(call) ::_##call
-#  else
 #    define FMT_POSIX_CALL(call) ::call
-#  endif
 #endif
 
 // Retries the expression while it evaluates to error_result and errno
 // equals to EINTR.
-#ifndef _WIN32
 #  define FMT_RETRY_VAL(result, expression, error_result) \
     do {                                                  \
       (result) = (expression);                            \
     } while ((result) == (error_result) && errno == EINTR)
-#else
-#  define FMT_RETRY_VAL(result, expression, error_result) result = (expression)
-#endif
 
 #define FMT_RETRY(result, expression) FMT_RETRY_VAL(result, expression, -1)
 
@@ -140,88 +108,9 @@ template <typename Char> struct formatter<std::error_code, Char> {
   }
 };
 
-#ifdef _WIN32
-FMT_API const std::error_category& system_category() FMT_NOEXCEPT;
-
-FMT_BEGIN_DETAIL_NAMESPACE
-// A converter from UTF-16 to UTF-8.
-// It is only provided for Windows since other systems support UTF-8 natively.
-class utf16_to_utf8 {
- private:
-  memory_buffer buffer_;
-
- public:
-  utf16_to_utf8() {}
-  FMT_API explicit utf16_to_utf8(basic_string_view<wchar_t> s);
-  operator string_view() const { return string_view(&buffer_[0], size()); }
-  size_t size() const { return buffer_.size() - 1; }
-  const char* c_str() const { return &buffer_[0]; }
-  std::string str() const { return std::string(&buffer_[0], size()); }
-
-  // Performs conversion returning a system error code instead of
-  // throwing exception on conversion error. This method may still throw
-  // in case of memory allocation error.
-  FMT_API int convert(basic_string_view<wchar_t> s);
-};
-
-FMT_API void format_windows_error(buffer<char>& out, int error_code,
-                                  const char* message) FMT_NOEXCEPT;
-FMT_END_DETAIL_NAMESPACE
-
-FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
-                                         format_args args);
-
-/**
- \rst
- Constructs a :class:`std::system_error` object with the description
- of the form
-
- .. parsed-literal::
-   *<message>*: *<system-message>*
-
- where *<message>* is the formatted message and *<system-message>* is the
- system message corresponding to the error code.
- *error_code* is a Windows error code as given by ``GetLastError``.
- If *error_code* is not a valid error code such as -1, the system message
- will look like "error -1".
-
- **Example**::
-
-   // This throws a system_error with the description
-   //   cannot open file 'madeup': The system cannot find the file specified.
-   // or similar (system message may vary).
-   const char *filename = "madeup";
-   LPOFSTRUCT of = LPOFSTRUCT();
-   HFILE file = OpenFile(filename, &of, OF_READ);
-   if (file == HFILE_ERROR) {
-     throw fmt::windows_error(GetLastError(),
-                              "cannot open file '{}'", filename);
-   }
- \endrst
-*/
-template <typename... Args>
-std::system_error windows_error(int error_code, string_view message,
-                                const Args&... args) {
-  return vwindows_error(error_code, message, fmt::make_format_args(args...));
-}
-
-// Reports a Windows error without throwing an exception.
-// Can be used to report errors from destructors.
-FMT_API void report_windows_error(int error_code,
-                                  const char* message) FMT_NOEXCEPT;
-#else
 inline const std::error_category& system_category() FMT_NOEXCEPT {
   return std::system_category();
 }
-#endif  // _WIN32
-
-// std::system is not available on some platforms such as iOS (#2248).
-#ifdef __OSX__
-template <typename S, typename... Args, typename Char = char_t<S>>
-void say(const S& format_str, Args&&... args) {
-  std::system(format("say \"{}\"", format(format_str, args...)).c_str());
-}
-#endif
 
 // A buffered file.
 class buffered_file {
@@ -277,7 +166,6 @@ class buffered_file {
   }
 };
 
-#if FMT_USE_FCNTL
 // A file. Closed file is represented by a file object with descriptor -1.
 // Methods that are not declared with FMT_NOEXCEPT may throw
 // fmt::system_error in case of failure. Note that some errors such as
@@ -475,52 +363,7 @@ template <typename... T>
 inline ostream output_file(cstring_view path, T... params) {
   return {path, detail::ostream_params(params...)};
 }
-#endif  // FMT_USE_FCNTL
 
-#ifdef FMT_LOCALE
-// A "C" numeric locale.
-class locale {
- private:
-#  ifdef _WIN32
-  using locale_t = _locale_t;
-
-  static void freelocale(locale_t loc) { _free_locale(loc); }
-
-  static double strtod_l(const char* nptr, char** endptr, _locale_t loc) {
-    return _strtod_l(nptr, endptr, loc);
-  }
-#  endif
-
-  locale_t locale_;
-
- public:
-  using type = locale_t;
-  locale(const locale&) = delete;
-  void operator=(const locale&) = delete;
-
-  locale() {
-#  ifndef _WIN32
-    locale_ = FMT_SYSTEM(newlocale(LC_NUMERIC_MASK, "C", nullptr));
-#  else
-    locale_ = _create_locale(LC_NUMERIC, "C");
-#  endif
-    if (!locale_) FMT_THROW(system_error(errno, "cannot create locale"));
-  }
-  ~locale() { freelocale(locale_); }
-
-  type get() const { return locale_; }
-
-  // Converts string to floating-point number and advances str past the end
-  // of the parsed input.
-  FMT_DEPRECATED double strtod(const char*& str) const {
-    char* end = nullptr;
-    double result = strtod_l(str, &end, locale_);
-    str = end;
-    return result;
-  }
-};
-using Locale FMT_DEPRECATED_ALIAS = locale;
-#endif  // FMT_LOCALE
 FMT_MODULE_EXPORT_END
 FMT_END_NAMESPACE
 

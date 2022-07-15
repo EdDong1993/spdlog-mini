@@ -24,7 +24,7 @@ namespace details {
 class thread_pool;
 class periodic_worker;
 
-class SPDLOG_API registry
+class registry
 {
 public:
     using log_levels = std::unordered_map<std::string, level::level_enum>;
@@ -110,6 +110,4 @@ private:
 } // namespace details
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "registry-inl.h"
-#endif
+#include "registry-inl.h"

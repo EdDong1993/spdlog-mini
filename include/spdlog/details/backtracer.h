@@ -15,7 +15,7 @@
 
 namespace spdlog {
 namespace details {
-class SPDLOG_API backtracer
+class backtracer
 {
     mutable std::mutex mutex_;
     std::atomic<bool> enabled_{false};
@@ -25,7 +25,7 @@ public:
     backtracer() = default;
     backtracer(const backtracer &other);
 
-    backtracer(backtracer &&other) SPDLOG_NOEXCEPT;
+    backtracer(backtracer &&other) noexcept;
     backtracer &operator=(backtracer other);
 
     void enable(size_t size);
@@ -40,6 +40,4 @@ public:
 } // namespace details
 } // namespace spdlog
 
-#ifdef SPDLOG_HEADER_ONLY
-#    include "backtracer-inl.h"
-#endif
+#include "backtracer-inl.h"
